@@ -1,0 +1,65 @@
+{
+    "CoinChaser": {
+        "checkpoints": [
+            {
+                "steps": 7499898,
+                "file_path": "results\\3\\CoinChaser\\CoinChaser-7499898.onnx",
+                "reward": -14.505617549158123,
+                "creation_time": 1748551697.1415093,
+                "auxillary_file_paths": [
+                    "results\\3\\CoinChaser\\CoinChaser-7499898.pt"
+                ]
+            },
+            {
+                "steps": 7999917,
+                "file_path": "results\\3\\CoinChaser\\CoinChaser-7999917.onnx",
+                "reward": -14.897501189133216,
+                "creation_time": 1748552061.4080002,
+                "auxillary_file_paths": [
+                    "results\\3\\CoinChaser\\CoinChaser-7999917.pt"
+                ]
+            },
+            {
+                "steps": 8499978,
+                "file_path": "results\\3\\CoinChaser\\CoinChaser-8499978.onnx",
+                "reward": -11.350723816149205,
+                "creation_time": 1748552311.6122935,
+                "auxillary_file_paths": [
+                    "results\\3\\CoinChaser\\CoinChaser-8499978.pt"
+                ]
+            },
+            {
+                "steps": 8999874,
+                "file_path": "results\\3\\CoinChaser\\CoinChaser-8999874.onnx",
+                "reward": -9.522308342731916,
+                "creation_time": 1748552604.1458704,
+                "auxillary_file_paths": [
+                    "results\\3\\CoinChaser\\CoinChaser-8999874.pt"
+                ]
+            },
+            {
+                "steps": 9044104,
+                "file_path": "results\\3\\CoinChaser\\CoinChaser-9044104.onnx",
+                "reward": -10.358125819824636,
+                "creation_time": 1748552648.78128,
+                "auxillary_file_paths": [
+                    "results\\3\\CoinChaser\\CoinChaser-9044104.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 9044104,
+            "file_path": "results\\3\\CoinChaser.onnx",
+            "reward": -10.358125819824636,
+            "creation_time": 1748552648.78128,
+            "auxillary_file_paths": [
+                "results\\3\\CoinChaser\\CoinChaser-9044104.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.2.0.dev0",
+        "torch_version": "2.2.2+cu121"
+    }
+}
