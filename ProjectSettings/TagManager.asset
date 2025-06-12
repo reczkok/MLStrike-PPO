@@ -7,14 +7,15 @@ TagManager:
   - Target
   - Agent
   - Wall
+  - BulletHolder
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Gun
   - Water
   - UI
-  - 
+  - Bullet
   - 
   - 
   - 

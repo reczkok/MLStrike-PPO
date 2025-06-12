@@ -15,11 +15,16 @@ public class CoinChaser : Agent
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private GameObject navMeshSamplerObject;
     [SerializeField] private GameObject eyes;
+    //[SerializeField] private GameObject projectile;
+    //[SerializeField] private Transform firePoint;
+
     private Rigidbody rb;
     private float _moveInput = 0f;
     private float _turnInput = 0f;
     private float _jumpInput = 0f;
     private bool _isGrounded = true;
+    private float _shootInput = 0f;
+    public float shotCooldown = 0.5f;
 
     protected override void Awake()
     {
@@ -63,7 +68,9 @@ public class CoinChaser : Agent
         
         var eyesAngle = Mathf.Clamp(actions.ContinuousActions[3], -1f, 1f);
         var eyesAngleMapped = Mathf.Lerp(-20f, 60f, (eyesAngle + 1f) / 2f);
-        
+
+        _shootInput = Mathf.Clamp(actions.ContinuousActions[4], 0f, 1f);
+
         if (eyes != null)
         {
             var eyesTransform = eyes.transform;
@@ -99,6 +106,21 @@ public class CoinChaser : Agent
         
         var rot = Quaternion.Euler(0f, _turnInput * rotationSpeed * 180f * Time.fixedDeltaTime, 0f);
         rb.MoveRotation(rb.rotation * rot);
+
+        //if (_shootInput > 0.5f && Time.time - lastShotTime > shotCooldown)
+        //{
+        //    PlayerShoot playerShoot = GetComponent<PlayerShoot>();
+        //    if (playerShoot != null)
+        //    {
+        //        playerShoot.ShootBullet();
+        //        Bullet bullet = 
+        //    }
+        //    else
+        //    {
+        //        Debug.LogWarning("PlayerShoot component not found. Cannot shoot.");
+        //    }
+        //    lastShotTime = Time.time;
+        //}
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -119,5 +141,31 @@ public class CoinChaser : Agent
                                   Keyboard.current.dKey.isPressed ? 1f : 0f;
         continuousActionsOut[2] = Keyboard.current.spaceKey.isPressed ? 1f : 0f;
         continuousActionsOut[3] = Keyboard.current.upArrowKey.isPressed ? 1f : 0f;
+        continuousActionsOut[4] = Keyboard.current.rKey.isPressed ? 1f : 0f;
     }
+
+    //public void ShootBullet()
+    //{
+    //    Debug.Log("Shoot() called");
+    //    if (projectile == null)
+    //    {
+    //        Debug.LogError("Projectile prefab is not assigned!");
+    //        return;
+    //    }
+    //    // Utwórz pocisk w pozycji i rotacji firePoint
+    //    GameObject projectileInstance = Instantiate(projectile, firePoint.position, firePoint.rotation);
+    //    Debug.Log("Projectile instantiated at " + firePoint.position);
+    //    //Rigidbody rb = projectileInstance.GetComponent<Rigidbody>();
+    //    //if (rb != null)
+    //    //{
+    //    //    rb.linearVelocity = transform.right * 10f; // lub projectileScript.speed
+    //    //}
+
+    //    // (Opcjonalnie) przeka¿ referencjê do agenta do pocisku
+    //    Projectile projectileScript = projectileInstance.GetComponent<Projectile>();
+    //    if (projectileScript != null)
+    //    {
+    //        projectileScript.SetShooter(this);
+    //    }
+    //}
 }
