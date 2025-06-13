@@ -24,7 +24,9 @@ public class CoinChaser : Agent
     private float _jumpInput = 0f;
     private bool _isGrounded = true;
     private float _shootInput = 0f;
-    public float shotCooldown = 0.5f;
+    private float lastShotTime = 0f;
+    public float shootCooldown = 0.5f; // pó³ sekundy
+    private PlayerShoot playerShoot;
 
     protected override void Awake()
     {
@@ -36,6 +38,7 @@ public class CoinChaser : Agent
         {
             Debug.LogWarning("Eyes GameObject not found. Please assign it in the inspector.");
         }
+        playerShoot = GetComponent<PlayerShoot>();
     }
     
 
@@ -69,7 +72,7 @@ public class CoinChaser : Agent
         var eyesAngle = Mathf.Clamp(actions.ContinuousActions[3], -1f, 1f);
         var eyesAngleMapped = Mathf.Lerp(-20f, 60f, (eyesAngle + 1f) / 2f);
 
-        _shootInput = Mathf.Clamp(actions.ContinuousActions[4], 0f, 1f);
+        _shootInput = Mathf.Clamp(actions.ContinuousActions[4], -1f, 1f);
 
         if (eyes != null)
         {
@@ -81,15 +84,36 @@ public class CoinChaser : Agent
             Debug.LogWarning("Eyes GameObject not found. Cannot set rotation.");
         }
 
-        if (target != null && Vector3.Distance(transform.position, target.transform.position) < 1.0f)
+        float distanceToTarget = Vector3.Distance(transform.position, target.transform.position);
+        float angleToTarget = Vector3.Angle(transform.forward, target.transform.position - transform.position);
+
+        if (angleToTarget < 10f && _shootInput > 0.5f)
         {
-            AddReward(1.0f);
-            EndEpisode();
+            AddReward(0.1f); //nagroda za strza³ w kierunku celu
         }
-        else
+
+        if (angleToTarget > 30f && _shootInput > 0.5f)
         {
-            AddReward(-0.01f);
+            AddReward(-0.05f); // Kara za "strza³ na œlepo"
         }
+
+        // Ma³a nagroda za utrzymanie dystansu
+        if (distanceToTarget > 3f && distanceToTarget < 10f)
+            AddReward(0.005f);
+
+        // Ma³a kara za bycie zbyt blisko
+        if (distanceToTarget < 2f)
+            AddReward(-0.005f);
+
+        //if (target != null && Vector3.Distance(transform.position, target.transform.position) < 1.0f)
+        //{
+        //    AddReward(1.0f);
+        //    EndEpisode();
+        //}
+        //else
+        //{
+        AddReward(-0.01f);
+        //}
     }
     
     private void FixedUpdate()
@@ -107,20 +131,11 @@ public class CoinChaser : Agent
         var rot = Quaternion.Euler(0f, _turnInput * rotationSpeed * 180f * Time.fixedDeltaTime, 0f);
         rb.MoveRotation(rb.rotation * rot);
 
-        //if (_shootInput > 0.5f && Time.time - lastShotTime > shotCooldown)
-        //{
-        //    PlayerShoot playerShoot = GetComponent<PlayerShoot>();
-        //    if (playerShoot != null)
-        //    {
-        //        playerShoot.ShootBullet();
-        //        Bullet bullet = 
-        //    }
-        //    else
-        //    {
-        //        Debug.LogWarning("PlayerShoot component not found. Cannot shoot.");
-        //    }
-        //    lastShotTime = Time.time;
-        //}
+        if (_shootInput > 0.5f && Time.time - lastShotTime > shootCooldown)
+        {
+            playerShoot.Shoot();
+            lastShotTime = Time.time;
+        }
     }
 
     public override void CollectObservations(VectorSensor sensor)

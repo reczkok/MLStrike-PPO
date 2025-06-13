@@ -28,12 +28,18 @@ public class Bullet : MonoBehaviour
 
             if (shooterAgent != null)
             {
-                shooterAgent.AddReward(1.0f);
+                shooterAgent.AddReward(2.0f);
                 shooterAgent.EndEpisode();
             }
-            //Destroy(gameObject);
+            
         }
-
+        else
+        {
+            if (shooterAgent != null)
+            {
+                shooterAgent.AddReward(-0.01f); // Kara za nietrafienie
+            }
+        }
         Destroy(gameObject);
     }
 }

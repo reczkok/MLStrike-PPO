@@ -37,12 +37,11 @@ public class PlayerShoot : MonoBehaviour
         }
     }
 
-    void Shoot()
+    public void Shoot()
     {
         GameObject bullet = Instantiate(bulletPrefab, bulletSpawnTransform.position, Quaternion.identity, GameObject.FindGameObjectWithTag("BulletHolder").transform);
         bullet.GetComponent<Rigidbody>().AddForce(bulletSpawnTransform.right * bulletSpeed, ForceMode.Impulse);
         bullet.GetComponent<Bullet>().SetShooter(GetComponent<CoinChaser>());
-        //bullet.GetComponent<Bullet>().damage = bulletDamage;
 
         timer = 1;
     }
