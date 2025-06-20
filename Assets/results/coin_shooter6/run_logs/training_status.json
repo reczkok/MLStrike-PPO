@@ -1,0 +1,29 @@
+{
+    "CoinChaser": {
+        "checkpoints": [
+            {
+                "steps": 28475,
+                "file_path": "results\\coin_shooter6\\CoinChaser\\CoinChaser-28475.onnx",
+                "reward": -1.2000000476837158,
+                "creation_time": 1749811186.1608367,
+                "auxillary_file_paths": [
+                    "results\\coin_shooter6\\CoinChaser\\CoinChaser-28475.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 28475,
+            "file_path": "results\\coin_shooter6\\CoinChaser.onnx",
+            "reward": -1.2000000476837158,
+            "creation_time": 1749811186.1608367,
+            "auxillary_file_paths": [
+                "results\\coin_shooter6\\CoinChaser\\CoinChaser-28475.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.5.1+cu121"
+    }
+}
