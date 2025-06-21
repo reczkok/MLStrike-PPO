@@ -19,6 +19,12 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
+    self_play:
+      save_steps: 20000
+      team_change: 100000
+      swap_steps: 30000
+      play_against_latest_model_ratio: 0.5
+      window: 10
     keep_checkpoints: 5
     max_steps: 50_000_000
     time_horizon: 128
