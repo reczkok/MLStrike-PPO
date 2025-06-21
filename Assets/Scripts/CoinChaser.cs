@@ -165,7 +165,7 @@ public class CoinChaser : Agent
             if (otherAgent != null &&
                 otherAgent.GetComponent<BehaviorParameters>().TeamId != this.GetComponent<BehaviorParameters>().TeamId)
             {
-                Debug.LogWarning("JEEEEEEEEEEESSSSSSSSSST AGENT");
+                // na razie dalem nagrode dla 2 agentow bo ciezko stwierdzic ktory wygrywa jak w siebie wbiegaja xd
                 AddReward(1.0f);
                 otherAgent.AddReward(1.0f);
                 
