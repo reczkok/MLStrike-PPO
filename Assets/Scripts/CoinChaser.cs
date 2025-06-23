@@ -140,12 +140,15 @@ public class CoinChaser : Agent
         sensor.AddObservation(transform.localPosition);
         sensor.AddObservation(eyes != null ? (eyes.transform.localRotation.eulerAngles.x + 20f) / 80f : 0f);
         sensor.AddObservation(_isGrounded ? 1f : 0f);
-        
+
+        // todo nie wiem czy chcemy relatywna pozycje zapisywac - to moze byc duze uproszczenie w uczeniu
+        // aktualnie dajemy nagrode za strzal w kierunku celu - bez ustawienia relatywnej pozycji to chyba bedzie randomowe
+        // takze podsumowujac - mozemy to wywalic - ale moze to tez przyspieszyc uczenie
         if (opponent != null)
         {
             Vector3 relativePosition = transform.InverseTransformPoint(opponent.transform.position);
             sensor.AddObservation(relativePosition);
-            
+
             float distance = Vector3.Distance(transform.position, opponent.transform.position);
             sensor.AddObservation(distance / 50f);
         }
