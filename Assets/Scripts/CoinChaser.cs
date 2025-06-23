@@ -1,6 +1,7 @@
 using System;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Policies;
 using Unity.MLAgents.Sensors;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,7 +10,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody))]
 public class CoinChaser : Agent
 {
-    [SerializeField] private GameObject target;
+    private GameObject opponent;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float rotationSpeed = 0.1f;
     [SerializeField] private float jumpForce = 5f;
@@ -25,7 +26,7 @@ public class CoinChaser : Agent
     private bool _isGrounded = true;
     private float _shootInput = 0f;
     private float lastShotTime = 0f;
-    public float shootCooldown = 0.5f; // pó³ sekundy
+    public float shootCooldown = 0.5f; // pï¿½ sekundy
     private PlayerShoot playerShoot;
 
     protected override void Awake()
@@ -40,27 +41,35 @@ public class CoinChaser : Agent
         }
         playerShoot = GetComponent<PlayerShoot>();
     }
-    
-
 
     public override void OnEpisodeBegin()
     {
-        var randomPosition = navMeshSamplerObject.GetComponent<NavMeshSampler>().GetRandomNavMeshPosition() + new Vector3(0, 1, 0);
-        
-        if (target != null)
-        {
-            target.transform.position = randomPosition;
-        }
-        else
-        {
-            Debug.LogWarning("Target is not set. Please assign a target GameObject.");
-        }
-        
         var agentPosition = navMeshSamplerObject.GetComponent<NavMeshSampler>().GetRandomNavMeshPosition() + new Vector3(0, 1, 0);
-        
+
         transform.position = agentPosition;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        
+        FindOpponent();
+    }
+    
+        private void FindOpponent()
+    {
+        GameObject[] allAgents = GameObject.FindGameObjectsWithTag("Agent");
+        opponent = null;
+        foreach (GameObject agent in allAgents)
+        {
+            if (agent != this.gameObject)
+            {
+                Agent agentComponent = agent.GetComponent<Agent>();
+                if (agentComponent != null &&
+                    agentComponent.GetComponent<BehaviorParameters>().TeamId != this.GetComponent<BehaviorParameters>().TeamId)
+                {
+                    opponent = agent;
+                    break;
+                }
+            }
+        }
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -68,7 +77,7 @@ public class CoinChaser : Agent
         _moveInput = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
         _turnInput = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
         _jumpInput = Mathf.Clamp(actions.ContinuousActions[2], -1f, 1f);
-        
+
         var eyesAngle = Mathf.Clamp(actions.ContinuousActions[3], -1f, 1f);
         var eyesAngleMapped = Mathf.Lerp(-20f, 60f, (eyesAngle + 1f) / 2f);
 
@@ -84,36 +93,22 @@ public class CoinChaser : Agent
             Debug.LogWarning("Eyes GameObject not found. Cannot set rotation.");
         }
 
-        float distanceToTarget = Vector3.Distance(transform.position, target.transform.position);
-        float angleToTarget = Vector3.Angle(transform.forward, target.transform.position - transform.position);
-
-        if (angleToTarget < 10f && _shootInput > 0.5f)
+        if (opponent != null)
         {
-            AddReward(0.1f); //nagroda za strza³ w kierunku celu
+            float distanceToTarget = Vector3.Distance(transform.position, opponent.transform.position);
+            float angleToTarget = Vector3.Angle(transform.forward, opponent.transform.position - transform.position);
+
+            if (angleToTarget < 10f && _shootInput > 0.5f)
+            {
+                AddReward(0.1f); // nagroda za strzal w kierunku celu
+            }
+        }
+        else
+        {
+            FindOpponent();
         }
 
-        if (angleToTarget > 30f && _shootInput > 0.5f)
-        {
-            AddReward(-0.05f); // Kara za "strza³ na œlepo"
-        }
-
-        // Ma³a nagroda za utrzymanie dystansu
-        if (distanceToTarget > 3f && distanceToTarget < 10f)
-            AddReward(0.005f);
-
-        // Ma³a kara za bycie zbyt blisko
-        if (distanceToTarget < 2f)
-            AddReward(-0.005f);
-
-        //if (target != null && Vector3.Distance(transform.position, target.transform.position) < 1.0f)
-        //{
-        //    AddReward(1.0f);
-        //    EndEpisode();
-        //}
-        //else
-        //{
-        AddReward(-0.01f);
-        //}
+        AddReward(-0.001f);
     }
     
     private void FixedUpdate()
@@ -141,10 +136,24 @@ public class CoinChaser : Agent
     public override void CollectObservations(VectorSensor sensor)
     {
         base.CollectObservations(sensor);
-        
+
         sensor.AddObservation(transform.localPosition);
         sensor.AddObservation(eyes != null ? (eyes.transform.localRotation.eulerAngles.x + 20f) / 80f : 0f);
         sensor.AddObservation(_isGrounded ? 1f : 0f);
+        
+        if (opponent != null)
+        {
+            Vector3 relativePosition = transform.InverseTransformPoint(opponent.transform.position);
+            sensor.AddObservation(relativePosition);
+            
+            float distance = Vector3.Distance(transform.position, opponent.transform.position);
+            sensor.AddObservation(distance / 50f);
+        }
+        else
+        {
+            sensor.AddObservation(Vector3.zero);
+            sensor.AddObservation(1f);
+        }
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
@@ -167,7 +176,7 @@ public class CoinChaser : Agent
     //        Debug.LogError("Projectile prefab is not assigned!");
     //        return;
     //    }
-    //    // Utwórz pocisk w pozycji i rotacji firePoint
+    //    // Utwï¿½rz pocisk w pozycji i rotacji firePoint
     //    GameObject projectileInstance = Instantiate(projectile, firePoint.position, firePoint.rotation);
     //    Debug.Log("Projectile instantiated at " + firePoint.position);
     //    //Rigidbody rb = projectileInstance.GetComponent<Rigidbody>();
@@ -176,7 +185,7 @@ public class CoinChaser : Agent
     //    //    rb.linearVelocity = transform.right * 10f; // lub projectileScript.speed
     //    //}
 
-    //    // (Opcjonalnie) przeka¿ referencjê do agenta do pocisku
+    //    // (Opcjonalnie) przekaï¿½ referencjï¿½ do agenta do pocisku
     //    Projectile projectileScript = projectileInstance.GetComponent<Projectile>();
     //    if (projectileScript != null)
     //    {
