@@ -1,0 +1,39 @@
+{
+    "CoinChaser": {
+        "checkpoints": [
+            {
+                "steps": 499933,
+                "file_path": "results\\5\\CoinChaser\\CoinChaser-499933.onnx",
+                "reward": -17.717998504638672,
+                "creation_time": 1750722203.4953787,
+                "auxillary_file_paths": [
+                    "results\\5\\CoinChaser\\CoinChaser-499933.pt"
+                ]
+            },
+            {
+                "steps": 998806,
+                "file_path": "results\\5\\CoinChaser\\CoinChaser-998806.onnx",
+                "reward": 58.84869834651118,
+                "creation_time": 1750724076.3609104,
+                "auxillary_file_paths": [
+                    "results\\5\\CoinChaser\\CoinChaser-998806.pt"
+                ]
+            }
+        ],
+        "elo": 1214.8571904024798,
+        "final_checkpoint": {
+            "steps": 998806,
+            "file_path": "results\\5\\CoinChaser.onnx",
+            "reward": 58.84869834651118,
+            "creation_time": 1750724076.3609104,
+            "auxillary_file_paths": [
+                "results\\5\\CoinChaser\\CoinChaser-998806.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.2.0.dev0",
+        "torch_version": "2.2.2+cu121"
+    }
+}

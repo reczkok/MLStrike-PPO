@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerShoot : MonoBehaviour
@@ -13,36 +15,13 @@ public class PlayerShoot : MonoBehaviour
     public Transform bulletSpawnTransform;
     public GameObject bulletPrefab;
 
-    private float timer;
-
-    private void Update()
+    public void Shoot(GameObject owner, float rotation)
     {
-        if (timer > 0)
-            timer -= Time.deltaTime / fireRate;
-
-
-        if (isAuto)
-        {
-            if (Input.GetMouseButton(0) && timer <= 0)
-            {
-                Shoot();
-            }
-        }
-        else
-        {
-            if (Input.GetMouseButtonDown(0) && timer <= 0)
-            {
-                Shoot();
-            }
-        }
-    }
-
-    public void Shoot()
-    {
-        GameObject bullet = Instantiate(bulletPrefab, bulletSpawnTransform.position, Quaternion.identity, GameObject.FindGameObjectWithTag("BulletHolder").transform);
-        bullet.GetComponent<Rigidbody>().AddForce(bulletSpawnTransform.right * bulletSpeed, ForceMode.Impulse);
-        bullet.GetComponent<Bullet>().SetShooter(GetComponent<CoinChaser>());
-
-        timer = 1;
+        var rotationQuaternion = Quaternion.Euler(rotation, 0, 0);
+        var bullet = Instantiate(bulletPrefab, bulletSpawnTransform.position, bulletSpawnTransform.transform.rotation * (rotation != 0 ? rotationQuaternion : Quaternion.identity));
+        // bullet.transform.localRotation = rotationQuaternion;
+        
+        bullet.GetComponent<Rigidbody>().AddForce(bullet.transform.forward * bulletSpeed, ForceMode.Impulse);
+        bullet.GetComponent<Bullet>().SetShooter(owner);
     }
 }

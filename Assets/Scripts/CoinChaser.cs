@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Policies;
@@ -8,79 +10,104 @@ using UnityEngine.InputSystem;
 // ReSharper disable BitwiseOperatorOnEnumWithoutFlags
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(PlayerShoot))]
 public class CoinChaser : Agent
 {
-    private GameObject opponent;
+    private struct Sample { public Vector3 pos; public float time; }
+    private readonly List<Sample> _history = new List<Sample>();
+    
+    [SerializeField] private float sampleWindow       = 4f;
+    [SerializeField] private float spreadThreshold    = 8f;
+    [SerializeField] private float stationaryPenalty  = -5f;
+    private float _stationaryTimer;
+
+    [SerializeField] private GameObject opponent;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float rotationSpeed = 0.1f;
     [SerializeField] private float jumpForce = 5f;
     [SerializeField] private GameObject navMeshSamplerObject;
     [SerializeField] private GameObject eyes;
-    //[SerializeField] private GameObject projectile;
-    //[SerializeField] private Transform firePoint;
+    [SerializeField] private RayPerceptionSensorComponent3D eyeRaySensor;
 
     private Rigidbody rb;
     private float _moveInput = 0f;
+    private float _strafeInput = 0f;
     private float _turnInput = 0f;
     private float _jumpInput = 0f;
     private bool _isGrounded = true;
     private float _shootInput = 0f;
     private float lastShotTime = 0f;
-    public float shootCooldown = 0.5f; // p� sekundy
+    public float shootCooldown = 0.5f;
     private PlayerShoot playerShoot;
-
+    private float _lookDirection;
+    
     protected override void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-        if (eyes != null) return;
-        eyes = transform.Find("Eyes")?.gameObject;
-        if (eyes == null)
-        {
-            Debug.LogWarning("Eyes GameObject not found. Please assign it in the inspector.");
-        }
         playerShoot = GetComponent<PlayerShoot>();
+        
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        if (eyes != null)
+        { 
+            eyeRaySensor = eyes.GetComponent<RayPerceptionSensorComponent3D>();
+        }
+        else
+        {
+            eyes = transform.Find("Eyes")?.gameObject;
+            if (eyes == null)
+            {
+                Debug.LogWarning("Eyes GameObject not found. Please assign it in the inspector.");
+            } else
+            {
+                eyeRaySensor = eyes.GetComponent<RayPerceptionSensorComponent3D>();
+            }
+        }
     }
 
     public override void OnEpisodeBegin()
     {
+        _history.Clear();
         var agentPosition = navMeshSamplerObject.GetComponent<NavMeshSampler>().GetRandomNavMeshPosition() + new Vector3(0, 1, 0);
 
         transform.position = agentPosition;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         
+        if (MatchManager.Instance != null)
+        {
+            agentPosition = MatchManager.Instance.agentSpawnPoint.position;
+        }
+        
         FindOpponent();
     }
     
-        private void FindOpponent()
+    private void FindOpponent()
     {
-        GameObject[] allAgents = GameObject.FindGameObjectsWithTag("Agent");
+        var allAgents = GameObject.FindGameObjectsWithTag("Agent");
         opponent = null;
-        foreach (GameObject agent in allAgents)
+        foreach (var agent in allAgents)
         {
-            if (agent != this.gameObject)
-            {
-                Agent agentComponent = agent.GetComponent<Agent>();
-                if (agentComponent != null &&
-                    agentComponent.GetComponent<BehaviorParameters>().TeamId != this.GetComponent<BehaviorParameters>().TeamId)
-                {
-                    opponent = agent;
-                    break;
-                }
-            }
+            if (agent == gameObject) continue;
+            var agentComponent = agent.GetComponent<Agent>();
+            if (agentComponent == null ||
+                agentComponent.GetComponent<BehaviorParameters>().TeamId ==
+                GetComponent<BehaviorParameters>().TeamId) continue;
+            opponent = agent;
+            break;
         }
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
         _moveInput = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
+        _strafeInput = Mathf.Clamp(actions.ContinuousActions[5], -1f, 1f);
         _turnInput = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
         _jumpInput = Mathf.Clamp(actions.ContinuousActions[2], -1f, 1f);
 
         var eyesAngle = Mathf.Clamp(actions.ContinuousActions[3], -1f, 1f);
         var eyesAngleMapped = Mathf.Lerp(-20f, 60f, (eyesAngle + 1f) / 2f);
 
+        _lookDirection = eyesAngleMapped;
         _shootInput = Mathf.Clamp(actions.ContinuousActions[4], -1f, 1f);
 
         if (eyes != null)
@@ -92,23 +119,53 @@ public class CoinChaser : Agent
         {
             Debug.LogWarning("Eyes GameObject not found. Cannot set rotation.");
         }
-
-        if (opponent != null)
+        
+        if (eyeRaySensor != null && _shootInput > 0.5f)
         {
-            float distanceToTarget = Vector3.Distance(transform.position, opponent.transform.position);
-            float angleToTarget = Vector3.Angle(transform.forward, opponent.transform.position - transform.position);
-
-            if (angleToTarget < 10f && _shootInput > 0.5f)
+            var whatIsSeen = eyeRaySensor.GetRayPerceptionInput();
+            var output = RayPerceptionSensor.Perceive(whatIsSeen, true);
+            var hasNoticedEnemy = false;
+            foreach (var ray in output.RayOutputs)
             {
-                AddReward(0.1f); // nagroda za strzal w kierunku celu
+                if (ray.HitTagIndex == 1) 
+                {
+                    hasNoticedEnemy = true;
+                }
+            }
+            if (hasNoticedEnemy)
+            {
+                AddReward(1f);
+            }
+        }
+        
+        if (Mathf.Abs(_moveInput) < 0.1f && Mathf.Abs(_strafeInput) < 0.1f)
+        {
+            AddReward(-0.05f);
+        }
+        
+        var now = Time.time;
+        _history.Add(new Sample{ pos = transform.position, time = now });
+        _history.RemoveAll(s => now - s.time > sampleWindow);
+
+        var maxDist = 0f;
+        for(var i = 0; i < _history.Count; i++)
+            for(var j = i + 1; j < _history.Count; j++)
+                maxDist = Mathf.Max(maxDist, Vector3.Distance(_history[i].pos, _history[j].pos));
+
+        if (maxDist < spreadThreshold)
+        {
+            _stationaryTimer += Time.deltaTime;
+            if (_stationaryTimer > sampleWindow)
+            {
+                AddReward(stationaryPenalty);
             }
         }
         else
         {
-            FindOpponent();
+            _stationaryTimer = 0f;
         }
-
-        AddReward(-0.001f);
+        
+        AddReward(-0.01f);
     }
     
     private void FixedUpdate()
@@ -123,14 +180,16 @@ public class CoinChaser : Agent
         var delta = transform.forward * (_moveInput * speed * Time.fixedDeltaTime);
         rb.MovePosition(rb.position + delta);
         
+        var strafeDelta = transform.right * (_strafeInput * (speed / 2f) * Time.fixedDeltaTime);
+        rb.MovePosition(rb.position + strafeDelta);
+        
         var rot = Quaternion.Euler(0f, _turnInput * rotationSpeed * 180f * Time.fixedDeltaTime, 0f);
         rb.MoveRotation(rb.rotation * rot);
 
-        if (_shootInput > 0.5f && Time.time - lastShotTime > shootCooldown)
-        {
-            playerShoot.Shoot();
-            lastShotTime = Time.time;
-        }
+        if (!(_shootInput > 0.5f) || !(Time.time - lastShotTime > shootCooldown)) return;
+
+        playerShoot.Shoot(this.gameObject, _lookDirection);
+        lastShotTime = Time.time;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -140,23 +199,6 @@ public class CoinChaser : Agent
         sensor.AddObservation(transform.localPosition);
         sensor.AddObservation(eyes != null ? (eyes.transform.localRotation.eulerAngles.x + 20f) / 80f : 0f);
         sensor.AddObservation(_isGrounded ? 1f : 0f);
-
-        // todo nie wiem czy chcemy relatywna pozycje zapisywac - to moze byc duze uproszczenie w uczeniu
-        // aktualnie dajemy nagrode za strzal w kierunku celu - bez ustawienia relatywnej pozycji to chyba bedzie randomowe
-        // takze podsumowujac - mozemy to wywalic - ale moze to tez przyspieszyc uczenie
-        if (opponent != null)
-        {
-            Vector3 relativePosition = transform.InverseTransformPoint(opponent.transform.position);
-            sensor.AddObservation(relativePosition);
-
-            float distance = Vector3.Distance(transform.position, opponent.transform.position);
-            sensor.AddObservation(distance / 50f);
-        }
-        else
-        {
-            sensor.AddObservation(Vector3.zero);
-            sensor.AddObservation(1f);
-        }
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
@@ -167,32 +209,7 @@ public class CoinChaser : Agent
         continuousActionsOut[1] = Keyboard.current.aKey.isPressed ? -1f  : 
                                   Keyboard.current.dKey.isPressed ? 1f : 0f;
         continuousActionsOut[2] = Keyboard.current.spaceKey.isPressed ? 1f : 0f;
-        continuousActionsOut[3] = Keyboard.current.upArrowKey.isPressed ? 1f : 0f;
+        continuousActionsOut[3] = Keyboard.current.upArrowKey.isPressed ? 1f : -1f;
         continuousActionsOut[4] = Keyboard.current.rKey.isPressed ? 1f : 0f;
     }
-
-    //public void ShootBullet()
-    //{
-    //    Debug.Log("Shoot() called");
-    //    if (projectile == null)
-    //    {
-    //        Debug.LogError("Projectile prefab is not assigned!");
-    //        return;
-    //    }
-    //    // Utw�rz pocisk w pozycji i rotacji firePoint
-    //    GameObject projectileInstance = Instantiate(projectile, firePoint.position, firePoint.rotation);
-    //    Debug.Log("Projectile instantiated at " + firePoint.position);
-    //    //Rigidbody rb = projectileInstance.GetComponent<Rigidbody>();
-    //    //if (rb != null)
-    //    //{
-    //    //    rb.linearVelocity = transform.right * 10f; // lub projectileScript.speed
-    //    //}
-
-    //    // (Opcjonalnie) przeka� referencj� do agenta do pocisku
-    //    Projectile projectileScript = projectileInstance.GetComponent<Projectile>();
-    //    if (projectileScript != null)
-    //    {
-    //        projectileScript.SetShooter(this);
-    //    }
-    //}
 }

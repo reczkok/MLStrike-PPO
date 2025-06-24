@@ -1,13 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.MLAgents;
 using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
     public float damage;
     public float lifeTime = 3;
-    private CoinChaser shooterAgent;
-    public void SetShooter(CoinChaser agent)
+    private GameObject shooterAgent;
+    public void SetShooter(GameObject agent)
     {
         shooterAgent = agent;
     }
@@ -16,20 +17,32 @@ public class Bullet : MonoBehaviour
     {
         lifeTime -= Time.deltaTime;
 
-        if (lifeTime < 0)
-            Destroy(gameObject);
+        if (!(lifeTime < 0)) return;
+        if (shooterAgent)
+        {
+            shooterAgent.GetComponent<Agent>()?.AddReward(-0.1f);
+        }
+        Destroy(gameObject);
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Target"))
+        if (other.CompareTag("Agent") && other.gameObject != shooterAgent.gameObject)
         {
-            Debug.Log("Trafiono cel!");
-
-            if (shooterAgent != null)
+            if (MatchManager.Instance != null)
             {
-                shooterAgent.AddReward(2.0f);
-                shooterAgent.EndEpisode();
+                MatchManager.Instance.ResetMatch();
+                Destroy(gameObject);
+                return;
+            }
+            
+            var hitAgent = other.GetComponent<CoinChaser>();
+            if (shooterAgent != null && hitAgent != null)
+            {
+                shooterAgent.GetComponent<Agent>()?.AddReward(100.0f);
+                hitAgent.AddReward(-50.0f);
+                hitAgent.EndEpisode();
+                shooterAgent.GetComponent<Agent>()?.EndEpisode();
             }
             
         }
@@ -37,7 +50,7 @@ public class Bullet : MonoBehaviour
         {
             if (shooterAgent != null)
             {
-                shooterAgent.AddReward(-0.01f); // Kara za nietrafienie
+                shooterAgent.GetComponent<Agent>()?.AddReward(-0.1f);
             }
         }
         Destroy(gameObject);
