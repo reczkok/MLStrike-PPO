@@ -1,0 +1,47 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1749801220",
+        "python_version": "3.9.21 (main, Dec 11 2024, 16:35:24) [MSC v.1929 64 bit (AMD64)]",
+        "command_line_arguments": "C:\\Users\\Kuba\\anaconda3\\envs\\mlagents\\Scripts\\mlagents-learn mlconfig.yaml --run-id=coin_shooter --no-graphics",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "2.5.1+cu121",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1749801239"
+    },
+    "total": 19.507055,
+    "count": 1,
+    "self": 0.006828500000001014,
+    "children": {
+        "run_training.setup": {
+            "total": 0.09041109999999986,
+            "count": 1,
+            "self": 0.09041109999999986
+        },
+        "TrainerController.start_learning": {
+            "total": 19.4098154,
+            "count": 1,
+            "self": 0.00034259999999974866,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 19.4094584,
+                    "count": 1,
+                    "self": 19.4094584
+                },
+                "trainer_threads": {
+                    "total": 8.000000022434506e-07,
+                    "count": 1,
+                    "self": 8.000000022434506e-07
+                },
+                "TrainerController._save_models": {
+                    "total": 1.359999999905881e-05,
+                    "count": 1,
+                    "self": 1.359999999905881e-05
+                }
+            }
+        }
+    }
+}
